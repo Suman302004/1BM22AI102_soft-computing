@@ -1,0 +1,81 @@
+import numpy as np
+
+def centroid_defuzzification(fuzzy_set):
+    """
+    Computes defuzzified value using the Centroid (COG) method.
+    """
+    numerator = sum(x * μ for x, μ in fuzzy_set)
+    denominator = sum(μ for _, μ in fuzzy_set)
+    return numerator / denominator if denominator != 0 else 0
+
+def mean_of_maximum(fuzzy_set):
+    """
+    Computes defuzzified value using the Mean of Maximum (MOM) method.
+    """
+    max_membership = max(μ for _, μ in fuzzy_set)
+    max_values = [x for x, μ in fuzzy_set if μ == max_membership]
+    return sum(max_values) / len(max_values) if max_values else 0
+
+def largest_of_maximum(fuzzy_set):
+    """
+    Computes defuzzified value using the Largest of Maximum (LOM) method.
+    """
+    max_membership = max(μ for _, μ in fuzzy_set)
+    return max(x for x, μ in fuzzy_set if μ == max_membership)
+
+def smallest_of_maximum(fuzzy_set):
+    """
+    Computes defuzzified value using the Smallest of Maximum (SOM) method.
+    """
+    max_membership = max(μ for _, μ in fuzzy_set)
+    return min(x for x, μ in fuzzy_set if μ == max_membership)
+
+# Example usage
+fuzzy_set = [(1, 0.2), (2, 0.5), (3, 0.8), (4, 1), (5, 0.6)]
+print("Centroid Defuzzification:", centroid_defuzzification(fuzzy_set))
+print("Mean of Maximum Defuzzification:", mean_of_maximum(fuzzy_set))
+print("Largest of Maximum Defuzzification:", largest_of_maximum(fuzzy_set))
+print("Smallest of Maximum Defuzzification:", smallest_of_maximum(fuzzy_set))
+
+import numpy as np
+import skfuzzy as fuzz
+import skfuzzy.control as ctrl
+
+def fuzzy_controller():
+    # Define fuzzy variables
+    temperature = ctrl.Antecedent(np.arange(0, 101, 1), 'temperature')
+    humidity = ctrl.Antecedent(np.arange(0, 101, 1), 'humidity')
+    fan_speed = ctrl.Consequent(np.arange(0, 101, 1), 'fan_speed')
+
+    # Define membership functions
+    temperature['cold'] = fuzz.trimf(temperature.universe, [0, 0, 50])
+    temperature['warm'] = fuzz.trimf(temperature.universe, [25, 50, 75])
+    temperature['hot'] = fuzz.trimf(temperature.universe, [50, 100, 100])
+
+    humidity['dry'] = fuzz.trimf(humidity.universe, [0, 0, 50])
+    humidity['normal'] = fuzz.trimf(humidity.universe, [25, 50, 75])
+    humidity['humid'] = fuzz.trimf(humidity.universe, [50, 100, 100])
+
+    fan_speed['low'] = fuzz.trimf(fan_speed.universe, [0, 0, 50])
+    fan_speed['medium'] = fuzz.trimf(fan_speed.universe, [25, 50, 75])
+    fan_speed['high'] = fuzz.trimf(fan_speed.universe, [50, 100, 100])
+
+    # Define rules
+    rule1 = ctrl.Rule(temperature['cold'] & humidity['dry'], fan_speed['low'])
+    rule2 = ctrl.Rule(temperature['cold'] & humidity['normal'], fan_speed['low'])
+    rule3 = ctrl.Rule(temperature['warm'] & humidity['humid'], fan_speed['medium'])
+    rule4 = ctrl.Rule(temperature['hot'] & humidity['dry'], fan_speed['medium'])
+    rule5 = ctrl.Rule(temperature['hot'] & humidity['humid'], fan_speed['high'])
+
+    # Control system
+    fan_control = ctrl.ControlSystem([rule1, rule2, rule3, rule4, rule5])
+    fan = ctrl.ControlSystemSimulation(fan_control)
+
+    return fan
+
+# Example usage
+fan = fuzzy_controller()
+fan.input['temperature'] = 70
+fan.input['humidity'] = 60
+fan.compute()
+print("Fan Speed Output:", fan.output['fan_speed'])
